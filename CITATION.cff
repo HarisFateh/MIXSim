@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use MIXSim, please cite the associated manuscript and this software release."
+type: software
+title: "MIXSim: A Multiclass Cell Transmission Model for Mixed Autonomy in Urban Networks"
+authors:
+  - family-names: Haris
+    given-names: Muhammad
+  - family-names: Roncoli
+    given-names: Claudio
+version: 1.0.0
+date-released: 2026-10-12
+license: MIT
+repository-code: "https://github.com/HarisFateh/MIXSim"

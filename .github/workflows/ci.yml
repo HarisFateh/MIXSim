@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip check
+
+      - name: Unit and regression tests
+        run: pytest -q
+
+      - name: Compile public Python sources
+        run: python -m compileall -q src examples studies tools
+
+      - name: Smoke-test tutorial and HTML examples
+        run: |
+          python examples/two_intersection_tutorial.py --quick --skip-html --output-dir outputs/ci_two_intersection
+          python examples/isolated_intersection_visualization.py --quick --output-dir outputs/ci_isolated_visual
+          python examples/grid_network_visualization.py --quick --output-dir outputs/ci_grid_visual
+
+      - name: Smoke-test manuscript studies
+        run: |
+          python studies/isolated_intersection_cav_penetration.py --quick --output-dir outputs/ci_isolated_study
+          python studies/grid_cav_penetration.py --quick --output-dir outputs/ci_grid_penetration
+          python studies/grid_cav_time_gap.py --quick --output-dir outputs/ci_time_gap
+          python studies/grid_signal_control_comparison.py --quick --output-dir outputs/ci_signal_control
+          python studies/generate_demand_profiles.py --output-dir outputs/ci_demand_profiles
+          python studies/figures/composition_dependent_fd.py --output-dir outputs/ci_fd_composition
+          python studies/figures/fd_sensitivity.py --output-dir outputs/ci_fd_sensitivity

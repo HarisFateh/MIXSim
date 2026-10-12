@@ -1,0 +1,90 @@
+import numpy as np
+
+
+def test_state_dependent_routing_cost_matches_manuscript_proxy():
+    from mixsim.travel_time import TravelTimeEstimator
+    from mixsim import build_single_intersection
+    net = build_single_intersection()
+    link = net.links[1]
+    est = TravelTimeEstimator(density_penalty_power=2.0)
+    tff = link.length_m / 8.33
+    assert np.isclose(est.link_travel_time(link, None), tff)
+
+    # Fill the first link to 50% of its physical storage.
+    n_cells = max(c.cell_id for l in net.links.values() for c in l.cells) + 1
+    x = np.zeros((n_cells, 1))
+    for cell in link.cells:
+        x[cell.cell_id, 0] = 0.5 * cell.jam_density_vpm * cell.length_m
+    assert np.isclose(est.link_density_ratio(link, x), 0.5)
+    assert np.isclose(est.link_travel_time(link, x), tff/(1.0-0.5)**2)
+
+
+def test_fixed_shortest_dynamic_and_stochastic_assignment_available():
+    from mixsim import Demand, VehicleClass, build_two_intersection_tutorial
+    net = build_two_intersection_tutorial()
+    classes = [VehicleClass("HDV", 3.0), VehicleClass("CAV", 0.9)]
+    d = Demand(seed=1)
+    d.add_od_profile(origin_link=1, destination_node="D1", class_name="HDV", profile=Demand.constant_profile(0), assignment="fixed_shortest", network=net)
+    d.add_od_profile(origin_link=1, destination_node="D2", class_name="CAV", profile=Demand.constant_profile(0), assignment="dynamic_shortest", network=net)
+    d.add_od_profile(origin_link=4, destination_node="D1", class_name="HDV", profile=Demand.constant_profile(0), assignment="stochastic", stochastic_theta=0.01, network=net)
+    d.prepare_commodities(net, classes)
+    d.update_assignment(net, classes, 0.0, None)
+    for c in d.commodities:
+        routes = d.current_routes_by_commodity[(c.origin_link, c.commodity_id)]
+        if net.links[c.origin_link].to_node != c.destination_node:
+            assert abs(sum(routes.values()) - 1.0) < 1e-12
+
+
+def test_partial_green_overlap_is_exact():
+    from mixsim import FixedSignalController, Network, NodeType, TurnType
+    net = Network()
+    net.add_node(NodeType.ORIGIN, 0, 0, "O")
+    n = net.add_node(NodeType.SIGNALIZED, 100, 0, "N")
+    net.add_node(NodeType.DESTINATION, 200, 0, "D")
+    l1 = net.add_link("O", "N", length_m=100.0, n_cells=1)
+    l2 = net.add_link("N", "D", length_m=100.0, n_cells=1)
+    m = net.add_movement("m", n, l1, l2, TurnType.STRAIGHT, saturation_vps=1.0)
+    net.add_phase(n, "p", [m], green=3.0, yellow=2.0, all_red=0.0)
+    comp = net.compile(5.0, max_wave_speed_mps=0.0)
+    ctrl = FixedSignalController()
+    assert abs(ctrl.movement_green_duration(comp, 0, 0.0, 5.0) - 3.0) < 1e-12
+
+
+def test_movement_saturation_uses_routing_weighted_composition():
+    from mixsim import (
+        CTMSimulator, Demand, FixedSignalController, MovementCompositionSaturationController,
+        Network, NodeType, TurnType, VehicleClass,
+    )
+    net = Network()
+    net.add_node(NodeType.ORIGIN, 0, 0, "O")
+    n = net.add_node(NodeType.SIGNALIZED, 100, 0, "N")
+    net.add_node(NodeType.DESTINATION, 200, 50, "D_hdv")
+    net.add_node(NodeType.DESTINATION, 200, -50, "D_cav")
+    l1 = net.add_link("O", "N", length_m=100.0, n_cells=1)
+    l2 = net.add_link("N", "D_hdv", length_m=100.0, n_cells=1)
+    l3 = net.add_link("N", "D_cav", length_m=100.0, n_cells=1)
+    m1 = net.add_movement("m1", n, l1, l2, TurnType.STRAIGHT)
+    m2 = net.add_movement("m2", n, l1, l3, TurnType.STRAIGHT)
+    net.add_phase(n, "both", [m1, m2], green=5.0, yellow=0.0, all_red=0.0)
+    d = Demand(seed=1)
+    d.add_od_profile(origin_link=1, destination_node="D_hdv", class_name="HDV", profile=Demand.constant_profile(0), assignment="fixed_shortest", network=net)
+    d.add_od_profile(origin_link=1, destination_node="D_cav", class_name="CAV", profile=Demand.constant_profile(0), assignment="fixed_shortest", network=net)
+    sim = CTMSimulator(net, [VehicleClass("HDV",3.0), VehicleClass("CAV",0.9)], d, d, FixedSignalController(), MovementCompositionSaturationController(), dt=5.0)
+    d.update_assignment(net, sim.vehicle_classes, 0.0, sim.x)
+    cell = sim.net.movement_from_cell[0]
+    sim.x[cell, 0] = 10.0
+    sim.x[cell, 1] = 10.0
+    sat_h = sim.saturation_controller.saturation_vps(sim.net, 0, 0.0, state=sim.x, simulator=sim)
+    sat_c = sim.saturation_controller.saturation_vps(sim.net, 1, 0.0, state=sim.x, simulator=sim)
+    vf = sim.net.cell_vf_mps[cell]
+    assert np.isclose(sat_h, vf/(vf*3.0+5.0))
+    assert np.isclose(sat_c, vf/(vf*0.9+5.0))
+    assert sat_c > sat_h
+
+
+def test_max_pressure_weights_are_normalized_time_gaps():
+    from mixsim import HeterogeneousMaxPressureController
+    class S:
+        time_gap_s = np.array([3.0, 0.9])
+    w = HeterogeneousMaxPressureController()._weights(S())
+    assert np.allclose(w, [3.0/0.9, 1.0])
