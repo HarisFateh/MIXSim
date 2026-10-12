@@ -103,34 +103,6 @@ CT  = first post-demand state with A(t) + B(t) <= 1e-4 veh
 
 Validated numerical targets are stored in `reference_results/`.
 
-## Model conventions
-
-For local class shares \(\pi_m\), MIXSim uses
-
-\[
-\bar\tau = \sum_m \pi_m \tau_m,
-\]
-
-with triangular-FD parameters
-
-\[
-q^{\max}=\frac{v^{\mathrm{ff}}}{v^{\mathrm{ff}}\bar\tau+L_v},
-\qquad
-w=\frac{L_v}{\bar\tau}.
-\]
-
-At signalized movements, the same spacing principle is applied to the routing-weighted movement composition. Realized transfer is limited by movement demand, effective green duration, and downstream receiving supply.
-
-Default manuscript values are 100 m cells, 5 s simulation steps, 8.33 m/s free-flow speed, 5 m effective standstill spacing, 3.0 s HDV time gap, and 0.9 s nominal CAV time gap.
-
-## Routing and signal control
-
-MIXSim supports the routing modes used in the manuscript: fixed shortest path, dynamic shortest path, and stochastic assignment. Dynamic and stochastic routing use a state-dependent link-cost proxy based on occupied storage.
-
-The grid CAV-penetration and CAV time-gap studies use a class-weighted, capacity-weighted Max Pressure baseline with a 10 s decision interval, 20 s minimum green, and zero switching lost time. During the time-gap sweep, the controller class weights remain fixed so that changing the CAV time gap changes the traffic model without changing the control objective.
-
-The signal-control comparison uses FT, DPFT, and the manuscript Max Pressure controller.
-
 ## Validation
 
 Continuous integration runs on Python 3.10, 3.11, and 3.12. Local fast validation is:

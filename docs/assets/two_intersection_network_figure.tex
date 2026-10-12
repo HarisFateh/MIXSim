@@ -1,0 +1,63 @@
+% ============================================================
+% (b) TWO-INTERSECTION NETWORK
+% ============================================================
+\begin{figure}[htbp]
+\centering
+\begin{minipage}[c]{0.60\textwidth}
+\centering
+\begin{adjustbox}{max width=\linewidth}
+\begin{tikzpicture}[every node/.append style={font=\footnotesize}]
+
+% ------------------------------------------------------------
+% Intersections
+% ------------------------------------------------------------
+\node[intersection] (N1) at (0,0) {$N_1$};
+\node[intersection] (N2) at (3.0,0) {$N_2$};
+
+% ------------------------------------------------------------
+% Horizontal boundary nodes
+% ------------------------------------------------------------
+\node[boundary] (O1) at (-2.0,0) {};
+\node[above=2pt of O1] {$O_1$};
+
+\node[boundary] (D1) at (5.0,0) {};
+\node[above=2pt of D1] {$D_1$};
+
+% ------------------------------------------------------------
+% Vertical boundaries at N1
+% ------------------------------------------------------------
+\node[boundary] (O2) at (0,1.8) {};
+\node[above=2pt of O2] {$O_2$};
+
+\node[boundary] (D2) at (0,-1.8) {};
+\node[below=2pt of D2] {$D_2$};
+
+% ------------------------------------------------------------
+% Vertical boundaries at N2
+% ------------------------------------------------------------
+\node[boundary] (O3) at (3.0,1.8) {};
+\node[above=2pt of O3] {$O_3$};
+
+\node[boundary] (D3) at (3.0,-1.8) {};
+\node[below=2pt of D3] {$D_3$};
+
+% ------------------------------------------------------------
+% Horizontal directed links
+% ------------------------------------------------------------
+\draw[link] (O1) -- (N1);
+\draw[link] (N1) -- (N2);
+\draw[link] (N2) -- (D1);
+
+% ------------------------------------------------------------
+% Vertical directed links: origins above, destinations below
+% ------------------------------------------------------------
+\draw[link] (O2) -- (N1);
+\draw[link] (N1) -- (D2);
+\draw[link] (O3) -- (N2);
+\draw[link] (N2) -- (D3);
+
+\end{tikzpicture}
+\end{adjustbox}
+\end{minipage}
+\caption{Two-intersection network.}\label{fig:two_intersection_network}
+\end{figure}
