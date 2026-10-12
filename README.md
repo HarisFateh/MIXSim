@@ -8,6 +8,9 @@ MIXSim is a **multiclass first-order macroscopic traffic simulation framework** 
 
 This repository contains the simulation core, reproducible manuscript studies, interactive HTML visualization examples, automated tests, documentation, and validated reference results.
 
+![Conceptual Rendering](docs/assets/MIXSimNet.png)
+
+
 ## Installation
 
 ```bash
@@ -34,8 +37,6 @@ python examples/two_intersection_tutorial.py
 ```
 
 The tutorial contains two signalized intersections with genuine OD-dependent route choices and demonstrates multiclass commodities, movement-specific saturation, virtual-origin queues, signal phases, routing fractions, conservation diagnostics, and browser-based playback.
-
-![Two-intersection tutorial network](docs/assets/two_intersection_tutorial_network.svg)
 
 See [docs/two_intersection_tutorial.md](docs/two_intersection_tutorial.md).
 
