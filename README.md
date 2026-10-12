@@ -8,7 +8,7 @@ MIXSim is a **multiclass first-order macroscopic traffic simulation framework** 
 
 This repository contains the simulation core, reproducible manuscript studies, interactive HTML visualization examples, automated tests, documentation, and validated reference results.
 
-![Conceptual Rendering](docs/assets/MIXSimNet.pdf)
+![Conceptual Rendering](docs/assets/MIXSimNet.png)
 
 
 ## Installation
