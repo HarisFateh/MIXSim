@@ -8,9 +8,6 @@ MIXSim is a **multiclass first-order macroscopic traffic simulation framework** 
 
 This repository contains the simulation core, reproducible manuscript studies, interactive HTML visualization examples, automated tests, documentation, and validated reference results.
 
-![Conceptual Rendering](docs/assets/MIXSimNet.png)
-
-
 ## Installation
 
 ```bash
@@ -37,6 +34,8 @@ python examples/two_intersection_tutorial.py
 ```
 
 The tutorial contains two signalized intersections with genuine OD-dependent route choices and demonstrates multiclass commodities, movement-specific saturation, virtual-origin queues, signal phases, routing fractions, conservation diagnostics, and browser-based playback.
+
+![Two-intersection tutorial network](docs/assets/two_intersection_tutorial_network.svg)
 
 See [docs/two_intersection_tutorial.md](docs/two_intersection_tutorial.md).
 
@@ -97,12 +96,40 @@ Full reproduction instructions are in [docs/reproduce_manuscript.md](docs/reprod
 All reported system-level metrics use physical network accumulation `A(t)` plus virtual-origin queues `B(t)`:
 
 ```text
-TST = dt/3600 * sum_t [A(t) + B(t)]
+TTS = dt/3600 * sum_t [A(t) + B(t)]
 PA  = max_t [A(t) + B(t)]
 CT  = first post-demand state with A(t) + B(t) <= 1e-4 veh
 ```
 
 Validated numerical targets are stored in `reference_results/`.
+
+## Model conventions
+
+For local class shares \(\pi_m\), MIXSim uses
+
+\[
+\bar\tau = \sum_m \pi_m \tau_m,
+\]
+
+with triangular-FD parameters
+
+\[
+q^{\max}=\frac{v^{\mathrm{ff}}}{v^{\mathrm{ff}}\bar\tau+L_v},
+\qquad
+w=\frac{L_v}{\bar\tau}.
+\]
+
+At signalized movements, the same spacing principle is applied to the routing-weighted movement composition. Realized transfer is limited by movement demand, effective green duration, and downstream receiving supply.
+
+Default manuscript values are 100 m cells, 5 s simulation steps, 8.33 m/s free-flow speed, 5 m effective standstill spacing, 3.0 s HDV time gap, and 0.9 s nominal CAV time gap.
+
+## Routing and signal control
+
+MIXSim supports the routing modes used in the manuscript: fixed shortest path, dynamic shortest path, and stochastic assignment. Dynamic and stochastic routing use an instantaneous state-based travel-time cost. For each cell, the current composition-dependent triangular fundamental diagram provides the local equilibrium flow and speed, and the link cost is obtained by summing cell travel times. The estimate is a current-state snapshot rather than an experienced or predictive travel time. See `docs/routing_cost.md` for the mathematical definition.
+
+The grid CAV-penetration and CAV time-gap studies use a class-weighted, capacity-weighted Max Pressure baseline with a 10 s decision interval, 20 s minimum green, and zero switching lost time. During the time-gap sweep, the controller class weights remain fixed so that changing the CAV time gap changes the traffic model without changing the control objective.
+
+The signal-control comparison uses FT, DPFT, and the manuscript Max Pressure controller.
 
 ## Validation
 

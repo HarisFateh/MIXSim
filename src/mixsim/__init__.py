@@ -51,4 +51,4 @@ __all__ = [
     "build_grid_4x4",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

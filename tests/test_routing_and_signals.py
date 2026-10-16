@@ -1,23 +1,70 @@
 import numpy as np
 
 
-def test_state_dependent_routing_cost_matches_manuscript_proxy():
+def test_state_dependent_routing_cost_is_instantaneous_travel_time():
     from mixsim.travel_time import TravelTimeEstimator
-    from mixsim import build_single_intersection
+    from mixsim import VehicleClass, build_single_intersection
+
     net = build_single_intersection()
     link = net.links[1]
-    est = TravelTimeEstimator(density_penalty_power=2.0)
-    tff = link.length_m / 8.33
+    classes = [
+        VehicleClass("HDV", time_gap_s=3.0, vehicle_length_m=5.0),
+        VehicleClass("CAV", time_gap_s=0.9, vehicle_length_m=5.0),
+    ]
+    est = TravelTimeEstimator(min_speed_mps=0.5)
+
+    tff = sum(c.length_m / c.free_flow_speed_mps for c in link.cells)
     assert np.isclose(est.link_travel_time(link, None), tff)
 
-    # Fill the first link to 50% of its physical storage.
     n_cells = max(c.cell_id for l in net.links.values() for c in l.cells) + 1
-    x = np.zeros((n_cells, 1))
-    for cell in link.cells:
-        x[cell.cell_id, 0] = 0.5 * cell.jam_density_vpm * cell.length_m
-    assert np.isclose(est.link_density_ratio(link, x), 0.5)
-    assert np.isclose(est.link_travel_time(link, x), tff/(1.0-0.5)**2)
+    x = np.zeros((n_cells, 2))
+    class_index = np.array([0, 1], dtype=int)
 
+    # At low density, the triangular FD is on its free-flow branch, so the
+    # instantaneous travel-time cost remains the free-flow travel time.
+    for cell in link.cells:
+        x[cell.cell_id, 0] = 1.0
+    assert np.isclose(
+        est.link_travel_time(
+            link,
+            x,
+            vehicle_classes=classes,
+            commodity_class_index=class_index,
+        ),
+        tff,
+    )
+
+    # At 50% jam density with all HDVs, the state is congested.  The current
+    # FD speed is u = w (rho_jam-rho) / rho = w, with w = 5/3 m/s.
+    x[:] = 0.0
+    for cell in link.cells:
+        storage = cell.jam_density_vpm * cell.length_m
+        x[cell.cell_id, 0] = 0.5 * storage
+    expected_speed = 5.0 / 3.0
+    expected_tt = sum(c.length_m / expected_speed for c in link.cells)
+    assert np.isclose(
+        est.link_travel_time(
+            link,
+            x,
+            vehicle_classes=classes,
+            commodity_class_index=class_index,
+        ),
+        expected_tt,
+    )
+
+    # The same density with all CAVs has a larger backward wave speed and
+    # therefore a lower instantaneous travel-time cost.
+    x[:] = 0.0
+    for cell in link.cells:
+        storage = cell.jam_density_vpm * cell.length_m
+        x[cell.cell_id, 1] = 0.5 * storage
+    cav_tt = est.link_travel_time(
+        link,
+        x,
+        vehicle_classes=classes,
+        commodity_class_index=class_index,
+    )
+    assert cav_tt < expected_tt
 
 def test_fixed_shortest_dynamic_and_stochastic_assignment_available():
     from mixsim import Demand, VehicleClass, build_two_intersection_tutorial

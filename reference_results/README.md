@@ -1,7 +1,9 @@
 # Reference results
 
-These CSV files are the numerical targets for the manuscript tables after the release reproducibility validation.
+These CSV files contain the validated manuscript reference values for MIXSim v1.1.0.
 
-All TST and PA values use total system accumulation `A(t)+B(t)`. Clearance time uses a common threshold of `A(t)+B(t) <= 1e-4 veh`.
+All TTS and PA values use total system accumulation `A(t)+B(t)`. Clearance time uses the common threshold `A(t)+B(t) <= 1e-4 veh`.
 
-The isolated-intersection CT values and the grid CAV-penetration TST/PA values differ from older development outputs because those older outputs used inconsistent metric conventions. See `../REPRODUCIBILITY_NOTES.md`.
+The routing-sensitive grid studies were regenerated after replacing the former occupied-storage routing penalty with the instantaneous state-based travel-time cost derived from the current composition-dependent triangular fundamental diagram. The isolated-intersection study uses fixed routing and is unchanged by this revision.
+
+Use `tools/validate_reference_results.py` after running the full study scripts to compare generated summaries with these files at manuscript precision.

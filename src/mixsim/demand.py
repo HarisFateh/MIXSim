@@ -245,8 +245,23 @@ class Demand:
             out[cid] = max(0.0, total)
         return out
 
-    def _link_costs(self, network: Network, commodity_state=None) -> dict[int, float]:
-        return self.travel_time_estimator.link_costs(network, commodity_state)
+    def _link_costs(
+        self,
+        network: Network,
+        commodity_state=None,
+        vehicle_classes: list[VehicleClass] | None = None,
+    ) -> dict[int, float]:
+        commodity_class_index = None
+        if self.commodities:
+            commodity_class_index = np.array(
+                [c.class_index for c in self.commodities], dtype=int
+            )
+        return self.travel_time_estimator.link_costs(
+            network,
+            commodity_state,
+            vehicle_classes=vehicle_classes,
+            commodity_class_index=commodity_class_index,
+        )
 
     def _routes_for_commodity(
         self,
@@ -315,53 +330,87 @@ class Demand:
             self.prepare_commodities(network, vehicle_classes)
 
         # Dynamic and stochastic modes use current state-dependent link costs.
-        dynamic_link_costs = self._link_costs(network, commodity_state)
+        dynamic_link_costs = self._link_costs(
+            network,
+            commodity_state,
+            vehicle_classes=vehicle_classes,
+        )
         dynamic_router = FloydWarshallRouter()
         dynamic_router.build(network, dynamic_link_costs)
 
         # Fixed-shortest mode uses a one-time static/free-flow routing table.
-        fixed_link_costs = self._link_costs(network, None)
+        fixed_link_costs = self._link_costs(
+            network,
+            None,
+            vehicle_classes=vehicle_classes,
+        )
         fixed_router = FloydWarshallRouter()
         fixed_router.build(network, fixed_link_costs)
 
         self.current_routes_by_commodity.clear()
 
+        # Route fractions depend on destination, assignment mode, theta and the
+        # common network link costs, but not on vehicle class or origin.  Many
+        # MIXSim commodities therefore share the same routing template.  Build
+        # each unique template once per assignment update and copy it to the
+        # relevant commodity IDs.  This preserves the mathematical assignment
+        # exactly while avoiding repeated all-link route calculations.
+        dynamic_templates: dict[tuple[int, str, float], dict[int, dict[int, float]]] = {}
+        fixed_templates: dict[tuple[int, str, float], dict[int, dict[int, float]]] = {}
+
         for commodity in self.commodities:
             assignment = self._profile_by_commodity.get(commodity.commodity_id, [None])[0]
             mode = assignment.assignment if assignment is not None else "dynamic_shortest"
             theta = assignment.stochastic_theta if assignment is not None else 0.05
+            template_key = (int(commodity.destination_node), str(mode), float(theta))
 
             if mode == "fixed_shortest":
-                # Cache fixed routes after the first computation and reuse them
-                # on later CTM steps even if the state-dependent travel times change.
                 needed = [
                     (from_link_id, commodity.commodity_id)
                     for from_link_id in network.links
                 ]
                 if not all(key in self._fixed_routes_by_commodity for key in needed):
-                    routes = self._routes_for_commodity(
-                        network,
-                        fixed_router,
-                        fixed_link_costs,
-                        commodity,
-                        mode="fixed_shortest",
-                        theta=theta,
-                    )
-                    self._fixed_routes_by_commodity.update(routes)
+                    if template_key not in fixed_templates:
+                        raw = self._routes_for_commodity(
+                            network,
+                            fixed_router,
+                            fixed_link_costs,
+                            commodity,
+                            mode="fixed_shortest",
+                            theta=theta,
+                        )
+                        fixed_templates[template_key] = {
+                            int(from_link): dict(probs)
+                            for (from_link, _), probs in raw.items()
+                        }
+                    template = fixed_templates[template_key]
+                    for from_link_id in network.links:
+                        self._fixed_routes_by_commodity[(from_link_id, commodity.commodity_id)] = dict(
+                            template.get(int(from_link_id), {})
+                        )
                 for key in needed:
                     self.current_routes_by_commodity[key] = dict(
                         self._fixed_routes_by_commodity.get(key, {})
                     )
             else:
-                routes = self._routes_for_commodity(
-                    network,
-                    dynamic_router,
-                    dynamic_link_costs,
-                    commodity,
-                    mode=mode,
-                    theta=theta,
-                )
-                self.current_routes_by_commodity.update(routes)
+                if template_key not in dynamic_templates:
+                    raw = self._routes_for_commodity(
+                        network,
+                        dynamic_router,
+                        dynamic_link_costs,
+                        commodity,
+                        mode=mode,
+                        theta=theta,
+                    )
+                    dynamic_templates[template_key] = {
+                        int(from_link): dict(probs)
+                        for (from_link, _), probs in raw.items()
+                    }
+                template = dynamic_templates[template_key]
+                for from_link_id in network.links:
+                    self.current_routes_by_commodity[(from_link_id, commodity.commodity_id)] = dict(
+                        template.get(int(from_link_id), {})
+                    )
 
     def probability(
         self,

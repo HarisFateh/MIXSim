@@ -68,26 +68,26 @@ def main() -> None:
                     "tau_cav_s": tau,
                     "cav_share_pct": 100*share,
                     "controller": short_name,
-                    "tst_veh_h": m.tst_veh_h,
+                    "tts_veh_h": m.tts_veh_h,
                     "pa_veh": m.pa_veh,
                     "clearance_time_min": m.clearance_time_min,
                     "cleared": m.cleared,
                     "entered_veh": m.entered_veh,
                     "exited_veh": m.exited_veh,
                     "max_abs_residual_veh": m.max_abs_residual_veh,
-            "final_system_veh": m.final_system_veh,
+                    "final_system_veh": m.final_system_veh,
                 })
-                print(f"tau={tau:.1f}s CAV={100*share:.0f}% {short_name}: TST={m.tst_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
+                print(f"tau={tau:.1f}s CAV={100*share:.0f}% {short_name}: TTS={m.tts_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
 
     df = pd.DataFrame(rows)
-    df["tst_reduction_vs_ft_pct"] = float("nan")
+    df["tts_reduction_vs_ft_pct"] = float("nan")
     for (_, _), block in df.groupby(["tau_cav_s", "cav_share_pct"], sort=False):
-        ft_rows = block.loc[block["controller"] == "FT", "tst_veh_h"]
+        ft_rows = block.loc[block["controller"] == "FT", "tts_veh_h"]
         if ft_rows.empty:
             continue
         ft = float(ft_rows.iloc[0])
         for idx in block.index:
-            df.loc[idx, "tst_reduction_vs_ft_pct"] = 100.0 * (ft - float(df.loc[idx, "tst_veh_h"])) / ft
+            df.loc[idx, "tts_reduction_vs_ft_pct"] = 100.0 * (ft - float(df.loc[idx, "tts_veh_h"])) / ft
     df.to_csv(out / "summary.csv", index=False)
 
 

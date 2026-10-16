@@ -38,7 +38,7 @@ def main() -> None:
         m, ts, _ = run_and_measure(sim, demand_s=demand_s, max_clearance_s=max_clearance_s)
         rows.append({
             "cav_share_pct": 100*share,
-            "tst_veh_h": m.tst_veh_h,
+            "tts_veh_h": m.tts_veh_h,
             "pa_veh": m.pa_veh,
             "clearance_time_min": m.clearance_time_min,
             "cleared": m.cleared,
@@ -51,7 +51,7 @@ def main() -> None:
         c["total_system_veh"] = c["physical_vehicles"] + c["virtual_queue"]
         c["cav_share_pct"] = 100*share
         curves.append(c)
-        print(f"CAV={100*share:.0f}% TST={m.tst_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
+        print(f"CAV={100*share:.0f}% TTS={m.tts_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
 
     summary = pd.DataFrame(rows)
     summary.to_csv(out / "summary.csv", index=False)

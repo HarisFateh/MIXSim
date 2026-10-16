@@ -18,13 +18,13 @@ STUDIES = {
         "actual": ROOT / "outputs/isolated_intersection_cav_penetration/summary.csv",
         "reference": ROOT / "reference_results/isolated_cav_penetration.csv",
         "keys": ["cav_share_pct"],
-        "columns": ["tst_veh_h", "pa_veh", "clearance_time_min"],
+        "columns": ["tts_veh_h", "pa_veh", "clearance_time_min"],
     },
     "grid_penetration": {
         "actual": ROOT / "outputs/grid_cav_penetration/summary.csv",
         "reference": ROOT / "reference_results/grid_cav_penetration.csv",
         "keys": ["cav_share_pct"],
-        "columns": ["tst_veh_h", "pa_veh", "clearance_time_min"],
+        "columns": ["tts_veh_h", "pa_veh", "clearance_time_min"],
     },
     "time_gap": {
         "actual": ROOT / "outputs/grid_cav_time_gap/summary.csv",
@@ -33,7 +33,7 @@ STUDIES = {
         "columns": [
             "all_cav_saturation_vph",
             "mean_movement_saturation_vph",
-            "tst_veh_h",
+            "tts_veh_h",
             "pa_veh",
             "clearance_time_min",
         ],
@@ -43,8 +43,8 @@ STUDIES = {
         "reference": ROOT / "reference_results/grid_signal_control_comparison.csv",
         "keys": ["tau_cav_s", "cav_share_pct", "controller"],
         "columns": [
-            "tst_veh_h",
-            "tst_reduction_vs_ft_pct",
+            "tts_veh_h",
+            "tts_reduction_vs_ft_pct",
             "pa_veh",
             "clearance_time_min",
         ],

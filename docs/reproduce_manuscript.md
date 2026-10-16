@@ -10,6 +10,11 @@ python studies/isolated_intersection_cav_penetration.py
 
 CAV shares are 0, 25, 50, 75, and 100%. The signal plan has two 50 s green phases with no yellow or all-red interval. System metrics use physical accumulation plus virtual-origin queues (`A+B`) and the common `1e-4 veh` clearance threshold.
 
+
+## Routing cost used by dynamic and stochastic assignment
+
+Dynamic and stochastic assignment use a current-state travel-time estimate. For each nonempty cell, MIXSim evaluates the local triangular fundamental diagram and sets the instantaneous cell speed to `u = q/rho`; empty cells use free-flow speed. The link cost is the sum of cell travel times `dx/max(u, epsilon_u)`, with `epsilon_u = 0.5 m/s` as a numerical lower bound. Consequently, the route cost is measured in seconds rather than being an abstract congestion penalty.
+
 ## 4x4-grid CAV penetration
 
 ```bash

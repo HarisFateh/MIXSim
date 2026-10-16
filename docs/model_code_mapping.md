@@ -7,7 +7,7 @@
 | Composition-dependent capacity and wave speed | `src/mixsim/simulator.py::effective_parameters` |
 | Sending / receiving | `src/mixsim/simulator.py::sending`, `src/mixsim/simulator.py::receiving` |
 | OD commodities and routing fractions | `src/mixsim/demand.py` |
-| State-dependent routing cost | `src/mixsim/travel_time.py::TravelTimeEstimator` |
+| Instantaneous state-based travel-time routing cost | `src/mixsim/travel_time.py::TravelTimeEstimator` |
 | Shortest paths | `src/mixsim/shortest_path.py::FloydWarshallRouter` |
 | Movement composition and saturation | `src/mixsim/saturation_controller.py::MovementCompositionSaturationController` |
 | Effective green duration and phase logic | `src/mixsim/signal_controller.py` |

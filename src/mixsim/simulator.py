@@ -27,6 +27,9 @@ class SimulationHistory:
 
     movement_flow: list[dict[int, float]] = field(default_factory=list)
     movement_flow_by_commodity: list[dict[int, list[float]]] = field(default_factory=list)
+    # Movement saturation rates actually evaluated from the state/routing used
+    # for each simulation step, in vehicles/second.
+    movement_saturation_vps: list[dict[int, float]] = field(default_factory=list)
 
     entry_flow: list[dict[int, float]] = field(default_factory=list)
     entry_flow_by_commodity: list[dict[int, list[float]]] = field(default_factory=list)
@@ -453,6 +456,7 @@ class CTMSimulator:
         *,
         movement_flow: dict[int, float] | None = None,
         movement_flow_by_commodity: dict[int, list[float]] | None = None,
+        movement_saturation_vps: dict[int, float] | None = None,
         entry_flow: dict[int, float] | None = None,
         entry_flow_by_commodity: dict[int, list[float]] | None = None,
         exit_flow: dict[int, float] | None = None,
@@ -471,6 +475,7 @@ class CTMSimulator:
         self.history.link_density_ratio.append(self._link_density_ratio(self.x))
         self.history.movement_flow.append(movement_flow or {})
         self.history.movement_flow_by_commodity.append(movement_flow_by_commodity or {})
+        self.history.movement_saturation_vps.append(dict(movement_saturation_vps or {}))
         self.history.entry_flow.append(entry_flow or {})
         self.history.entry_flow_by_commodity.append(entry_flow_by_commodity or {})
         self.history.exit_flow.append(exit_flow or {})
@@ -633,6 +638,7 @@ class CTMSimulator:
         # --------------------------------------------------------------
         movement_candidate_total = np.zeros(self.net.n_movements, dtype=float)
         movement_candidate_by_comm = np.zeros((self.net.n_movements, self.n_commodities), dtype=float)
+        movement_saturation_vps: dict[int, float] = {}
         # Routing-weighted last-cell vehicle mass p(l,k,h,t)n(l,I_l,h,t),
         # aggregated by vehicle class.  This is a vehicle count used by the
         # movement-composition saturation controller to estimate HDV/CAV shares;
@@ -688,6 +694,20 @@ class CTMSimulator:
                     demand_vec[q] = p * S[from_cell, q]
                     movement_weighted_class_mass[m_idx, int(commodity.class_index)] += p * self.x[from_cell, q]
 
+            # Evaluate and record the movement saturation from the same state
+            # and routing probabilities used by this CTM step.  Recording the
+            # value here avoids reconstructing historical saturation after the
+            # simulation with a later routing state.
+            sat_vps = self.saturation_controller.saturation_vps(
+                self.net,
+                m_idx,
+                time_s,
+                state=self.x,
+                simulator=self,
+            )
+            movement_id = int(self.net.movement_index_to_id[m_idx])
+            movement_saturation_vps[movement_id] = float(sat_vps)
+
             D = float(np.sum(demand_vec))
             if D <= 1e-12:
                 continue
@@ -707,13 +727,6 @@ class CTMSimulator:
             if green_duration_s <= 1e-12:
                 continue
 
-            sat_vps = self.saturation_controller.saturation_vps(
-                self.net,
-                m_idx,
-                time_s,
-                state=self.x,
-                simulator=self,
-            )
             cap = max(0.0, float(sat_vps) * green_duration_s)
             cand = min(D, cap)
             if cand <= 1e-12:
@@ -826,6 +839,7 @@ class CTMSimulator:
             time_s + self.dt,
             movement_flow=movement_flow,
             movement_flow_by_commodity=movement_flow_by_comm,
+            movement_saturation_vps=movement_saturation_vps,
             entry_flow=entry_flow_by_link,
             entry_flow_by_commodity=entry_flow_by_link_comm,
             exit_flow=exit_flow_by_link,
@@ -838,11 +852,19 @@ class CTMSimulator:
             routing_probabilities=routing_probabilities,
         )
 
-    def run(self, n_steps: int, *, flush_time_s: float = 0.0) -> SimulationHistory:
+    def run(
+        self,
+        n_steps: int,
+        *,
+        flush_time_s: float = 0.0,
+        flush_clearance_tol: float | None = None,
+    ) -> SimulationHistory:
         if n_steps < 0:
             raise ValueError("n_steps cannot be negative")
         if flush_time_s < 0:
             raise ValueError("flush_time_s cannot be negative")
+        if flush_clearance_tol is not None and flush_clearance_tol < 0:
+            raise ValueError("flush_clearance_tol cannot be negative")
 
         self.initial_system_vehicles = float(np.sum(self.x) + np.sum(self.virtual_queue))
         self.cumulative_requested = 0.0
@@ -886,5 +908,9 @@ class CTMSimulator:
         for _ in range(n_flush):
             self.step(t, flush=True)
             t += self.dt
+            if flush_clearance_tol is not None:
+                remaining = float(np.sum(self.x) + np.sum(self.virtual_queue))
+                if remaining <= float(flush_clearance_tol):
+                    break
 
         return self.history

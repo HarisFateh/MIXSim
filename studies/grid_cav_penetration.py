@@ -44,7 +44,7 @@ def main() -> None:
         m, _, _ = run_and_measure(sim, demand_s=demand_s, max_clearance_s=max_clearance_s)
         rows.append({
             "cav_share_pct": 100*share,
-            "tst_veh_h": m.tst_veh_h,
+            "tts_veh_h": m.tts_veh_h,
             "pa_veh": m.pa_veh,
             "clearance_time_min": m.clearance_time_min,
             "cleared": m.cleared,
@@ -53,7 +53,7 @@ def main() -> None:
             "max_abs_residual_veh": m.max_abs_residual_veh,
             "final_system_veh": m.final_system_veh,
         })
-        print(f"CAV={100*share:.0f}% TST={m.tst_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
+        print(f"CAV={100*share:.0f}% TTS={m.tts_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
 
     pd.DataFrame(rows).to_csv(out / "summary.csv", index=False)
 

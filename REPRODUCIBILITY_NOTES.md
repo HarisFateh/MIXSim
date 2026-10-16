@@ -6,28 +6,27 @@ This repository was rebuilt from the latest supplied MIXSim code archive and re-
 
 The following items are now aligned between code and manuscript:
 
+- dynamic and stochastic routing use an instantaneous travel-time cost derived from the current composition-dependent cell states and triangular fundamental diagram, replacing the former occupied-storage penalty;
+
 - stochastic routing in the CAV time-gap study uses `theta = 0.01`;
 - the grid CAV-penetration and CAV time-gap studies use the class-weighted, capacity-weighted Max Pressure baseline with a 10 s decision interval, 20 s minimum green, and zero switching lost time;
 - Max Pressure class weights are held fixed at `[3.0/0.9, 1.0]` during the CAV time-gap sweep;
 - the isolated intersection uses two 50 s green phases, no yellow, and no all-red interval;
 - the public API and documentation use **time gap**, not reaction time or following-time.
 
-## Important metric audit performed for the release
+## Routing-cost revision and refreshed reference results
 
-The manuscript defines the system metrics using physical accumulation `A(t)` plus virtual-origin queues `B(t)`, and it specifies a common clearance tolerance of `1e-4 veh`. During full reruns, two older archived result tables were found to have been generated with different conventions:
+Dynamic and stochastic assignment now use an instantaneous travel-time cost derived from the current composition-dependent triangular fundamental diagram. The previous occupied-storage penalty has been removed from route choice and retained only as a diagnostic quantity. Because this change affects route decisions, all routing-sensitive grid studies were rerun and `reference_results/` was regenerated.
 
-1. The old isolated-intersection table used a clearance tolerance of `1e-6 veh`. TST and PA were unchanged, but the reported CT values were longer.
-2. The old grid CAV-penetration table used **physical accumulation only** for TST and PA, even though the manuscript defines TST and PA using `A(t)+B(t)`.
-
-The release does **not** preserve those inconsistent legacy conventions. The study scripts and `reference_results/` now use the manuscript's stated common definitions:
+The system metrics continue to use the manuscript definitions:
 
 ```text
-TST = dt/3600 * sum_t [A(t) + B(t)]
+TTS = dt/3600 * sum_t [A(t) + B(t)]
 PA  = max_t [A(t) + B(t)]
 CT  = first post-demand state with A(t) + B(t) <= 1e-4 veh
 ```
 
-Accordingly, the manuscript must use the corrected isolated-intersection CT values and corrected grid CAV-penetration TST/PA values stored in `reference_results/`. The CAV time-gap and mixed-autonomy/signal-control tables already follow the common metric definitions and did not require numerical changes.
+The isolated-intersection study uses fixed routing and is numerically unchanged. Grid CAV-penetration, CAV time-gap, and signal-control comparison values in the reference CSVs correspond to the revised travel-time routing formulation.
 
 ## What was removed from the development archive
 

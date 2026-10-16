@@ -358,7 +358,7 @@ def build_grid_simulation(
 
 @dataclass(frozen=True)
 class Metrics:
-    tst_veh_h: float
+    tts_veh_h: float
     pa_veh: float
     clearance_time_min: float
     cleared: bool
@@ -375,7 +375,11 @@ def run_and_measure(
     max_clearance_s: float = MAX_CLEARANCE_S,
     clearance_tol: float = CLEARANCE_TOL_VEH,
 ) -> tuple[Metrics, pd.DataFrame, object]:
-    history = sim.run(int(round(float(demand_s) / sim.dt)), flush_time_s=float(max_clearance_s))
+    history = sim.run(
+        int(round(float(demand_s) / sim.dt)),
+        flush_time_s=float(max_clearance_s),
+        flush_clearance_tol=float(clearance_tol),
+    )
     ts_full = network_timeseries(sim, history).copy()
     total = ts_full["physical_vehicles"].astype(float) + ts_full["virtual_queue"].astype(float)
     candidates = ts_full.index[(ts_full["time_s"].astype(float) >= demand_s) & (total <= clearance_tol)].tolist()
@@ -388,7 +392,7 @@ def run_and_measure(
     ts = ts_full.iloc[: end_idx + 1].copy()
     total = ts["physical_vehicles"].astype(float) + ts["virtual_queue"].astype(float)
     metrics = Metrics(
-        tst_veh_h=float(total.sum() * sim.dt / 3600.0),
+        tts_veh_h=float(total.sum() * sim.dt / 3600.0),
         pa_veh=float(total.max()),
         clearance_time_min=max(0.0, (float(ts["time_s"].iloc[-1]) - demand_s) / 60.0),
         cleared=cleared,

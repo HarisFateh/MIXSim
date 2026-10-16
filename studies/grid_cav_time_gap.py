@@ -24,12 +24,13 @@ from studies.common import (
 
 
 def mean_movement_saturation(sim, history, *, sample_every: int = 10) -> tuple[float, float]:
+    """Return mean/max saturation actually evaluated during the run."""
     vals = []
-    for idx in range(0, len(history.commodity_state), max(1, int(sample_every))):
-        state = history.commodity_state[idx]
-        time_s = float(history.time_s[idx])
-        for m_idx in range(sim.net.n_movements):
-            vals.append(sim.saturation_controller.saturation_vps(sim.net, m_idx, time_s, state=state, simulator=sim))
+    records = getattr(history, "movement_saturation_vps", [])
+    for idx in range(0, len(records), max(1, int(sample_every))):
+        vals.extend(float(v) for v in records[idx].values())
+    if not vals:
+        return float("nan"), float("nan")
     a = np.asarray(vals, dtype=float)
     return float(a.mean()), float(a.max())
 
@@ -69,7 +70,7 @@ def main() -> None:
             "all_cav_saturation_vph": all_cav_sat_vph,
             "mean_movement_saturation_vph": 3600.0*mean_sat,
             "max_movement_saturation_vph": 3600.0*max_sat,
-            "tst_veh_h": m.tst_veh_h,
+            "tts_veh_h": m.tts_veh_h,
             "pa_veh": m.pa_veh,
             "clearance_time_min": m.clearance_time_min,
             "cleared": m.cleared,
@@ -79,17 +80,26 @@ def main() -> None:
             "stochastic_theta": args.stochastic_theta,
             "max_abs_residual_veh": m.max_abs_residual_veh,
         })
-        print(f"tau_CAV={tau:.2f}s TST={m.tst_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
+        print(f"tau_CAV={tau:.2f}s TTS={m.tts_veh_h:.2f}, PA={m.pa_veh:.2f}, CT={m.clearance_time_min:.2f}")
 
     df = pd.DataFrame(rows)
     df.to_csv(out / "summary.csv", index=False)
 
     fig, ax = plt.subplots(figsize=(5.0, 3.6))
     s = df.sort_values("tau_cav_s")
-    ax.plot(s["tau_cav_s"], s["all_cav_saturation_vph"], marker="o", label="All-CAV theoretical")
-    ax.plot(s["tau_cav_s"], s["mean_movement_saturation_vph"], marker="s", label="Mean movement")
+    x = s["tau_cav_s"].to_numpy(dtype=float)
+    ax.plot(x, s["all_cav_saturation_vph"], marker="o", label="All-CAV theoretical")
+    ax.plot(x, s["mean_movement_saturation_vph"], marker="s", linestyle="--", label="Mean movement")
+    ax.plot(x, s["max_movement_saturation_vph"], marker="^", linestyle="-.", label="Maximum movement")
+
+    hdv_sat_vph = 3600.0 * V_FF_MPS / (V_FF_MPS * 3.0 + VEHICLE_LENGTH_M)
+    ax.axhline(hdv_sat_vph, linestyle=":", label="All-HDV theoretical")
+    if x.min() <= 3.0 <= x.max():
+        ax.plot(3.0, hdv_sat_vph, marker="D", linestyle="None")
+
     ax.set_xlabel(r"CAV time gap $\tau_{\mathrm{CAV}}$ [s]")
     ax.set_ylabel("Saturation flow [veh/h]")
+    ax.set_xticks(x)
     ax.tick_params(direction="in", top=True, right=True)
     ax.legend(frameon=False)
     fig.tight_layout()
