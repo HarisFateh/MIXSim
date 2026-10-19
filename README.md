@@ -156,6 +156,7 @@ arXiv preprint, 2026.
   journal = {arXiv preprint arXiv:2610.23714},
   year    = {2026}
 }
+```
 
 ## License
 
