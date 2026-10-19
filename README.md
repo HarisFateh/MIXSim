@@ -141,7 +141,21 @@ Generated outputs, caches, build products, and virtual environments are excluded
 
 ## Citation
 
-Citation metadata are provided in [CITATION.cff](CITATION.cff). If MIXSim contributes to published work, please cite the associated manuscript and software release.
+If you use MIXSim in your research, please cite:
+
+**Muhammad Haris and Claudio Roncoli,**  
+*MIXSim: A multiclass first order traffic model with composition-dependent dynamics for mixed-autonomy urban networks,*  
+arXiv preprint, 2026.
+
+[arXiv:2610.23714](https://arxiv.org/abs/2610.23714)
+
+```bibtex
+@article{haris2026mixsim,
+  title   = {MIXSim: A multiclass first order traffic model with composition-dependent dynamics for mixed-autonomy urban networks},
+  author  = {Haris, Muhammad and Roncoli, Claudio},
+  journal = {arXiv preprint arXiv:2610.23714},
+  year    = {2026}
+}
 
 ## License
 
